@@ -6,12 +6,14 @@ import requests
 """
 Configure Logging
 """
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-class nexpose():
+class nexpose:
     def __init__(self, config):
         """
         :param config: Configuration dict, needs URL, Authentication and Certificate
@@ -24,10 +26,12 @@ class nexpose():
         self.apiurl = config["url"]
         self.auth = config["auth"]
         self.cert = config["cert"]
-        self.header = {'Content-Type': "application/json",
-                       'Authorization': "Basic " + self.auth,
-                       'Accept': "*/*",
-                       'cache-control': "no-cache"}
+        self.header = {
+            "Content-Type": "application/json",
+            "Authorization": "Basic " + self.auth,
+            "Accept": "*/*",
+            "cache-control": "no-cache",
+        }
 
     def getPagination(self, url):
         """
@@ -39,11 +43,9 @@ class nexpose():
         output = []
         while go == 1:
             params = {"size": 500, "page": page}
-            response = requests.request("GET",
-                                        url,
-                                        headers=self.header,
-                                        verify=self.cert,
-                                        params=params).json()
+            response = requests.request(
+                "GET", url, headers=self.header, verify=self.cert, params=params
+            ).json()
             totalPages = response["page"]["totalPages"]
             if totalPages > page:
                 if "output" in locals():
@@ -62,10 +64,9 @@ class nexpose():
         :return: Returns response of URL
         """
         params = {"size": size}
-        response = requests.get(url,
-                                headers=self.header,
-                                verify=self.cert,
-                                params=params)
+        response = requests.get(
+            url, headers=self.header, verify=self.cert, params=params
+        )
         if response.status_code != 200:
             logger.error("Unable to process GET")
             logger.error(f"Status code {response.status_code}")
@@ -77,9 +78,7 @@ class nexpose():
         :param url: API URL to get
         :return: Returns response of URL
         """
-        response = requests.delete(url,
-                                headers=self.header,
-                                verify=self.cert)
+        response = requests.delete(url, headers=self.header, verify=self.cert)
         if response.status_code != 200:
             logger.error("Unable to process DELETE")
             logger.error(f"Status code {response.status_code}")
@@ -92,11 +91,9 @@ class nexpose():
         :param data: Data to POST
         :return: Returns response of API
         """
-        response = requests.request("POST",
-                                    url,
-                                    headers=self.header,
-                                    verify=self.cert,
-                                    json=data).json()
+        response = requests.request(
+            "POST", url, headers=self.header, verify=self.cert, json=data
+        ).json()
         return response
 
     def get_sites(self, size=500):
@@ -105,6 +102,17 @@ class nexpose():
         :return: Returns all Sites
         """
         url = self.apiurl + "/api/3/sites"
+        if size == 0 or size > 500:
+            return self.getPagination(url)
+        else:
+            return self._get(url, size)["resources"]
+
+    def get_scan_engines(self, size=500):
+        """
+        :param size: INT of page size (0 = unlimited)
+        :return: Returns all Scan Engines
+        """
+        url = self.apiurl + "/api/3/scan_engines"
         if size == 0 or size > 500:
             return self.getPagination(url)
         else:
@@ -137,11 +145,9 @@ class nexpose():
             return self._get(url, size)["resources"]
 
     def _put(self, url, payload):
-        response = requests.request("PUT",
-                                    url,
-                                    headers=self.header,
-                                    verify=self.cert,
-                                    data=payload)
+        response = requests.request(
+            "PUT", url, headers=self.header, verify=self.cert, data=payload
+        )
         if response.status_code == 200:
             return response.json()
         if response.status_code == 500:
@@ -169,17 +175,13 @@ class nexpose():
 
     def start_scan(self, site_id, template_id):
         url = self.apiurl + "/api/3/sites/" + str(site_id) + "/scans"
-        payload = {
-            "templateId": template_id
-        }
+        payload = {"templateId": template_id}
         self._post(url, payload)
 
     def _post(self, url, payload={}):
-        response = requests.request("POST",
-                                    url,
-                                    headers=self.header,
-                                    verify=self.cert,
-                                    json=payload)
+        response = requests.request(
+            "POST", url, headers=self.header, verify=self.cert, json=payload
+        )
         if response.status_code == 200 or response.status_code == 201:
             return response.json()
         if response.status_code == 500:
@@ -196,12 +198,14 @@ class nexpose():
         output = []
         while go == 1:
             params = {"size": 500, "page": page}
-            response = requests.request("POST",
-                                        url,
-                                        headers=self.header,
-                                        verify=self.cert,
-                                        params=params,
-                                        json=payload).json()
+            response = requests.request(
+                "POST",
+                url,
+                headers=self.header,
+                verify=self.cert,
+                params=params,
+                json=payload,
+            ).json()
             totalPages = response["page"]["totalPages"]
             if totalPages > page:
                 if "output" in locals():
@@ -241,10 +245,7 @@ class nexpose():
 
     def find_assets(self, filters, match):
         url = self.apiurl + "/api/3/assets/search"
-        payload = {
-            "filters": filters,
-            "match": match
-        }
+        payload = {"filters": filters, "match": match}
         return self._post_paginated(url, payload)
 
     def getTags(self):
@@ -278,10 +279,7 @@ class nexpose():
         """
         url = self.apiurl + "/api/3/tags"
 
-        data = {
-            "name": name,
-            "type": "owner",
-            "color": "default"}
+        data = {"name": name, "type": "owner", "color": "default"}
         self.post(url, data)
 
     def getOwnerTags(self):
@@ -303,10 +301,9 @@ class nexpose():
         This function adds a Tag to an Asset
         """
         url = self.apiurl + "/api/3/tags/" + str(tagID) + "/assets/" + str(assetID)
-        response = requests.request("PUT",
-                                    url,
-                                    headers=self.header,
-                                    verify=self.cert).json()
+        response = requests.request(
+            "PUT", url, headers=self.header, verify=self.cert
+        ).json()
         return response
 
     def delete_asset(self, assetID):
